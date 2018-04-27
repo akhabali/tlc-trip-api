@@ -1,4 +1,4 @@
-package io.github.khabali.tlctrip.configuration;
+package io.github.khabali.tlctrip.service;
 
 import static java.util.Collections.emptyMap;
 
@@ -10,28 +10,29 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
+import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.json.JsonBuilderFactory;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.spi.JsonProvider;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Feature;
-import javax.ws.rs.core.FeatureContext;
 import javax.ws.rs.core.Response;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @ApplicationScoped
-public class Data implements Feature {
+public class Data {
+    @Getter
+    private List<JsonObject> trips;
 
-    private final static List<JsonObject> trips = new ArrayList<>();
-
-    @Override
-    public boolean configure(final FeatureContext context) {
+    @PostConstruct
+    private void load() {
         try {
             loadData();
             if (trips.isEmpty()) {
@@ -40,15 +41,13 @@ public class Data implements Feature {
                         .build());
             }
             log.info("Data sample loaded successfully. " + trips.size() + " trips");
-            return true;
-        } catch (IOException | ParseException e) {
-            throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Can't load data samples\n" + e.getMessage())
-                    .build());
+        } catch (final IOException | ParseException e) {
+            throw new IllegalStateException("Can't load data samples", e);
         }
     }
 
     private void loadData() throws IOException, ParseException {
+        final List<JsonObject> trips = new ArrayList<>(60000);
         try (BufferedReader br = new BufferedReader(new InputStreamReader(this.getClass().getClassLoader()
                 .getResourceAsStream("samples/yellow_tripdata_2017.csv")))) {
             String[] headers = br.readLine().split(",");
@@ -79,9 +78,6 @@ public class Data implements Feature {
                 trips.add(ob.build());
             }
         }
-    }
-
-    public static List<JsonObject> get() {
-        return trips;
+        this.trips = Collections.unmodifiableList(trips);
     }
 }
