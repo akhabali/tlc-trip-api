@@ -3,11 +3,8 @@ package io.github.khabali.tlctrip.front;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -40,18 +37,16 @@ public class TripResource {
 
     private final SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
 
-    private void loadData() throws URISyntaxException, IOException, ParseException {
-        final URI uri;
-
-        uri = TripResource.class.getClassLoader()
-                .getResource("samples/yellow_tripdata_2017.csv")
-                .toURI();
-
-        try (BufferedReader br = new BufferedReader(new FileReader(new File(uri)))) {
+    private void loadData() throws IOException, ParseException {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(TripResource.class.getClassLoader()
+                .getResourceAsStream("samples/yellow_tripdata_2017.csv")))) {
             String[] headers = br.readLine()
                     .split(",");
             String line;
             while ((line = br.readLine()) != null) {
+                if (line.isEmpty()) {
+                    continue;
+                }
                 JsonObjectBuilder ob = jsonp.createObjectBuilder();
                 String[] values = line.split(",");
                 for (int i = 0; i < values.length; i++) {
@@ -83,7 +78,7 @@ public class TripResource {
         if (trips.isEmpty()) {
             try {
                 loadData();
-            } catch (URISyntaxException | IOException | ParseException e) {
+            } catch (IOException | ParseException e) {
                 throw new WebApplicationException(Response.status(Response.Status.BAD_REQUEST)
                         .entity("Can't load data samples\n" + e.getMessage())
                         .build());
