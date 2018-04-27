@@ -1,0 +1,1 @@
+web: cd target && unzip tlc-trip-api-meecrowave-distribution.zip && cd tlc-trip-api-distribution && MEECROWAVE_OPTS="" ./bin/meecrowave.sh run --http=$PORT
